@@ -54,22 +54,21 @@ public class PathFinder
                 discoveredPath = current;
                 break;
             }
-            for (int x = -1; x <= 1; x ++)
-                for (int y = Math.Abs(x)-1; y <= 1-Math.Abs(x); y+=2)
+            for (int x = 1, y = 0; x+y != 0; y+=x, x-=y, y-=Convert.ToInt32(x == -1))
+            {
+                Vector3Int find = new Vector3Int(currentPos.x + x, currentPos.y + y, currentPos.z);
+                if (!discoveredTiles.Contains(find))
                 {
-                    Vector3Int find = new Vector3Int(currentPos.x + x, currentPos.y + y, currentPos.z);
-                    if (!discoveredTiles.Contains(find))
-                    {
-                        discoveredTiles.Add(find);
-                        TilePath next = new TilePath(current);
-                        var nextLocation = map.GetTile(find);
-                        if (nextLocation == null) continue;
-                        Tile nextTile = tileFactory.GetTile(nextLocation.name);
-                        nextTile.Position = find;
-                        next.AddTileToPath(nextTile);
-                        pathQueue.Enqueue(next);
-                    }
+                    discoveredTiles.Add(find);
+                    TilePath next = new TilePath(current);
+                    var nextLocation = map.GetTile(find);
+                    if (nextLocation == null) continue;
+                    Tile nextTile = tileFactory.GetTile(nextLocation.name);
+                    nextTile.Position = find;
+                    next.AddTileToPath(nextTile);
+                    pathQueue.Enqueue(next);
                 }
+            }
         }
         return discoveredPath;
     }
