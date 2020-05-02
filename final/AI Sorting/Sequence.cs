@@ -25,7 +25,7 @@ namespace AI_Sorting
 //      For future goal:
 //        static private int sequentialIndex = 0;
 
-        public Sequence()
+        public Sequence(int complexity = -1)
         {
             // FUTURE GOAL: Instead of random, make this sequential.
             // For future goals:
@@ -39,17 +39,9 @@ namespace AI_Sorting
             sequence = new Stack<SequenceItem>();
             currentBrain = "";
 
-            for (int a = rand.Next(1, 30); a > 0; a--)
-            {
-                int index = rand.Next(0, currentBrain.Length);
-                int r = rand.Next(0, LogicTree.questions.Length + LogicTree.commands.Length);
-                char c;
-                if (r >= LogicTree.questions.Length)
-                    c = LogicTree.commands[r - LogicTree.questions.Length];
-                else
-                    c = LogicTree.questions[r];
-                addElement(c, index);
-            }
+            if (complexity == -1) complexity = rand.Next(1, 30);
+            else complexity = rand.Next(1, complexity * complexity);
+            for (int a = complexity; a > 0; a--) addRandomElement();
         }
 
         public Sequence(string text)
@@ -73,9 +65,14 @@ namespace AI_Sorting
             return ret;
         }
 
+        public int getComplexity()
+        {
+            return sequence.Count();
+        }
+
         public void addRandomElement()
         {
-            bool overwrite = (rand.Next(0, 2) == 1);
+            bool overwrite = (rand.Next(0, 2) == 1 && currentBrain.Length > 0);
 
             int index = rand.Next(0, currentBrain.Length);
             int r = rand.Next(0, LogicTree.questions.Length + LogicTree.commands.Length);

@@ -8,7 +8,7 @@ using System.Collections;
 
 // This file will be used to handle the AI itself.
 /** Required Data-Types include:
- * Priority Queue
+ * 3 Priority Queues
  * Tree
  * */
 
@@ -22,6 +22,8 @@ using System.Collections;
  *      Actions:
  * Q Add Active Element to Queue
  * P Add Active Element to Priority Queue
+ * N Get the next Priority Queue
+ * W Active Element = length of input
  * D Dequeue into Active Element
  * A +1 to Active Element
  * S -1 to Active Element
@@ -40,9 +42,11 @@ namespace AI_Sorting
     {
         int[] input;
         LogicTree brain;
+        string brainString;
 
         public AI(string brain)
         {
+            brainString = brain;
             this.brain = new LogicTree(brain);
         }
 
@@ -54,6 +58,58 @@ namespace AI_Sorting
         public AIEnumerator getEnum()
         {
             return new AIEnumerator(brain, input);
+        }
+        public override string ToString()
+        {
+            /**     Tools and Abilities:
+             * PriorityQueue
+             * Active Element
+             *      Questions:
+             * G/g Active Element >. Queue Front
+             * L/l Active Element <. Queue Front
+             * E/e Active Element =. Queue Front
+             *      Actions:
+             * Q Add Active Element to Queue
+             * P Add Active Element to Priority Queue
+             * N Get the next priority queue
+             * W Active Element = length of input
+             * D Dequeue into Active Element
+             * A +1 to Active Element
+             * S -1 to Active Element
+             * O print Active Element
+             * I get the Active Element'th item from the input, give to Active Element
+             * F End/Submit
+             * */
+
+            Dictionary<char, string> decode = new Dictionary<char, string>();
+            decode['G'] = "if (active > current.peek()) {";
+            decode['g'] = "}";
+            decode['L'] = "if (active < current.peek()) {";
+            decode['l'] = "}";
+            decode['E'] = "if (active == current.peek()) {";
+            decode['e'] = "}";
+            decode['Q'] = "current.enqueue(active);";
+            decode['P'] = "current.priorityEnqueue(active);";
+            decode['N'] = "current = nextQueue();";
+            decode['D'] = "active = current.dequeue();";
+            decode['A'] = "active++;";
+            decode['S'] = "active--;";
+            decode['O'] = "print(active)";
+            decode['I'] = "active = input[active];";
+            decode['F'] = "return;";
+            decode['W'] = "active = input.length;";
+
+
+            string ret = "current = priorityQueues(); // handles multiple priority queues\nactive = 0;\n// Additionally, there is an int[] called input\n\nwhile(!quit) // Can be stopped if need be.\n{\n";
+            int indent = 1;
+            foreach (char n in brainString)
+            {
+                if (decode[n].EndsWith("}")) indent--;
+                ret += new String('\t', indent) + decode[n] + "\n";
+                if (decode[n].EndsWith("{")) indent += 1;
+            }
+
+            return ret + "}";
         }
 
     }
@@ -77,10 +133,11 @@ namespace AI_Sorting
             int value = 0;
             bool state_changed = false;
             bool end = false;
+            bool error = false;
 
             LogicTree.TreeNode current = brain.root;
 
-            while (current != null)
+            while (current != null && !error && !print)
             {
                 foreach (char c in current.vals)
                 {
@@ -89,6 +146,8 @@ namespace AI_Sorting
                     * Q Add Active Element to Queue
                     * P Add Active Element to Priority Queue
                     * D Dequeue into Active Element
+                    * N Get next Priority Queue
+                    * W Active Element = length of input
                     * A +1 to Active Element
                     * S -1 to Active Element
                     * O print Active Element
@@ -99,14 +158,22 @@ namespace AI_Sorting
                     {
                         case 'Q':
                             state_changed = true;
-                            state.queue.Enqueue(state.active);
+                            state.queue().Enqueue(state.active);
                             break;
                         case 'P':
                             state_changed = true;
-                            state.priority.Enqueue(state.active);
+                            state.priority().Enqueue(state.active);
+                            break;
+                        case 'N':
+                            state_changed = true;
+                            state.nextQueue();
+                            break;
+                        case 'W':
+                            state.active = input.Length;
                             break;
                         case 'D':
                             state_changed = true;
+                            if (!state.canDequeue()) { error = true; break; }
                             state.active = state.Dequeue();
                             break;
                         case 'A':
@@ -118,25 +185,29 @@ namespace AI_Sorting
                             state.active--;
                             break;
                         case 'O':
-                            print = true;
                             value = state.active;
+                            print = true;
                             break;
                         case 'I':
                             if (input.Length > 0)
                             {
+                                if (!(state.active < input.Length && state.active >= 0)) { error = true; break; }
                                 state_changed = true;
-                                state.active = input[Math.Abs(state.active) % input.Length];
+                                state.active = input[state.active];
                             }
                             break;
                         case 'F':
                             end = true;
                             break;
                     }
+                    if (error || print) break;
                 }
+                if (error || print) break;
                 // do question logic
                 // rewriting code because it's 1:17am and I just don't want to bother simplifying a copy/paste right now.
                 if (current.question == 'G')
                 {
+                    if (!state.canDequeue()) { error = true; break; }
                     if (state.active > state.getFront())
                         current = current.right;
                     else
@@ -144,6 +215,7 @@ namespace AI_Sorting
                 }
                 else if (current.question == 'L')
                 {
+                    if (!state.canDequeue()) { error = true; break; }
                     if (state.active < state.getFront())
                         current = current.right;
                     else
@@ -151,6 +223,7 @@ namespace AI_Sorting
                 }
                 else if (current.question == 'E')
                 {
+                    if (!state.canDequeue()) { error = true; break; }
                     if (state.active == state.getFront())
                         current = current.right;
                     else
@@ -159,7 +232,7 @@ namespace AI_Sorting
                 else
                     break;
             }
-            return new AIEnumeratorValues(print, value, state_changed, end);
+            return new AIEnumeratorValues(print, value, state_changed, end, error);
         }
     }
 
@@ -169,13 +242,15 @@ namespace AI_Sorting
         public int value;
         public bool state_changed;
         public bool end;
+        public bool error;
 
-        public AIEnumeratorValues(bool print, int value, bool state_changed, bool end)
+        public AIEnumeratorValues(bool print, int value, bool state_changed, bool end, bool error)
         {
             this.print = print;
             this.value = value;
             this.state_changed = state_changed;
             this.end = end;
+            this.error = error;
         }
     }
 
@@ -183,35 +258,57 @@ namespace AI_Sorting
 
     public class State
     {
-        public Queue<int> queue = new Queue<int>();
-        public Queue<int> priority = new Queue<int>();
+        public Queue<int>[] queues = new Queue<int>[] { new Queue<int>(), new Queue<int>(), new Queue<int>() };
+        public Queue<int>[] priorities = new Queue<int>[] { new Queue<int>(), new Queue<int>(), new Queue<int>() };
         public int active = 0;
+        private int index = 0;
 
         public void reset()
         {
-            queue = new Queue<int>();
-            priority = new Queue<int>();
+            queues = new Queue<int>[] { new Queue<int>(), new Queue<int>(), new Queue<int>() };
+            priorities = new Queue<int>[] { new Queue<int>(), new Queue<int>(), new Queue<int>() };
             active = 0;
+            index = 0;
+        }
+
+        public Queue<int> priority()
+        {
+            return priorities[index];
+        }
+
+        public Queue<int> queue()
+        {
+            return queues[index];
         }
 
         public int getFront()
         {
-            if (priority.Count > 0)
-                return priority.Peek();
-            else if (queue.Count > 0)
-                return queue.Peek();
+            if (priority().Count > 0)
+                return priority().Peek();
+            else if (queue().Count > 0)
+                return queue().Peek();
             else
                 return 0;
         }
 
+        public bool canDequeue()
+        {
+            return (priority().Count + queue().Count != 0);
+        }
+
         public int Dequeue()
         {
-            if (priority.Count > 0)
-                return priority.Dequeue();
-            else if (queue.Count > 0)
-                return queue.Dequeue();
+            if (priority().Count > 0)
+                return priority().Dequeue();
+            else if (queue().Count > 0)
+                return queue().Dequeue();
             else
                 return 0;
+        }
+
+        public void nextQueue()
+        {
+            index = (index + 1) % queues.Length;
         }
 
     }
@@ -221,7 +318,7 @@ namespace AI_Sorting
         public static char[] questions = { 'G', 'L', 'E' };
         public static char[] questionEnds = { 'g', 'l', 'e' };
         // Commands also here
-        public static char[] commands = { 'Q', 'P', 'D', 'A', 'S', 'O', 'I', 'F' };
+        public static char[] commands = { 'Q', 'P', 'D', 'A', 'S', 'O', 'I', 'F', 'N' };
 
         string logic;
         public TreeNode root = null;

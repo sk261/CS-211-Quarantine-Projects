@@ -11,27 +11,53 @@ namespace AI_Sorting
 {
     class Program
     {
-        public static int MAX_SEQUENCES = 100;
+        public static int MAX_SEQUENCES = 1000;
         public static int TOTAL_RUNS = 1000;
-        public static int MAX_DIFFICULTY = 10;
+        public static int MAX_DIFFICULTY = 4;
+        public static int COMPLETE_RANDOMS_PER_ROUND = 1;
         static void Main(string[] args)
         {
             Random rand = new Random();
-            List<Sequence> sequences = new List<Sequence>();
-            Console.WriteLine("Loading Sequences");
-            if (!File.Exists("champions.txt"))
-                File.WriteAllText("champions.txt", "");
-            else
+            if (args.Length > 0)
             {
-                string latestChampion = File.ReadLines("champions.txt").Last();
-                Sequence champion = new Sequence(latestChampion.Trim());
-                Console.WriteLine("Current champion: " + champion.ToString());
-                Educator.evaluate(champion.build(), 100);
-                Console.ReadLine();
+
+                foreach(string filename in args)
+                {
+                    if (!File.Exists(filename))
+                    {
+                        Console.WriteLine("File not found: " + filename);
+                        continue;
+                    }
+                    string latestChampion = "";
+                    IEnumerable<String> output = File.ReadLines(filename);
+                    if (output.Count() > 0)
+                    {
+                        latestChampion = File.ReadLines(filename).Last();
+                        Sequence champion = new Sequence(latestChampion.Trim());
+                        Console.WriteLine("Champion from: " + filename);
+                        Console.WriteLine("Current champion: " + champion.ToString());
+                        Console.WriteLine("Visual brain: ");
+                        Console.WriteLine(champion.build().ToString());
+
+                        for (int i = 1; i <= MAX_DIFFICULTY; i++)
+                        {
+                            Console.WriteLine("");
+                            Educator.evaluate(champion.build(), i);
+                        }
+                        
+                        Console.ReadLine();
+                    }
+                }
+                Console.WriteLine("All Champions read.");
+                return;
             }
 
+            if (!File.Exists("champions.txt"))
+                File.WriteAllText("champions.txt", "");
 
 
+            List<Sequence> sequences = new List<Sequence>();
+            Console.WriteLine("Loading Sequences");
             if (File.Exists("brains.txt"))
             {
                 Console.WriteLine("brains.txt found, importing...");
@@ -53,17 +79,17 @@ namespace AI_Sorting
             {
                 Console.WriteLine("Training " + iteration.ToString() + "/" + TOTAL_RUNS.ToString());
                 List<int> scores = new List<int>();
-                Console.Write("Evaluating sequences:");
+//                Console.Write("Evaluating sequences:");
                 for(int sequence_id = lastScores.Count(); sequence_id < sequences.Count(); sequence_id++)
                 {
-                    Console.Write(" " + sequence_id.ToString());
+//                    Console.Write(" " + sequence_id.ToString());
                     int score = 0;
                     for (int difficulty = 1; difficulty <= MAX_DIFFICULTY; difficulty++)
                         score += Educator.educate(sequences[sequence_id].build(), difficulty);
                     scores.Add(score);
                 }
-                Console.WriteLine("");
-                Console.WriteLine("Score management");
+//                Console.WriteLine("");
+//                Console.WriteLine("Score management");
                 scores = lastScores.Concat(scores).ToList();
 
                 // Using insert sort variant for speedy development time
@@ -79,19 +105,24 @@ namespace AI_Sorting
                             sequences[j] = temp;
                         }
 
-                Console.WriteLine("Sorted score list: " + String.Join(' ', scores));
+//                Console.WriteLine("Sorted score list: " + String.Join(' ', scores));
                 Console.WriteLine("Best: " + sequences[0].ToString());
 
-                string latestChampion = File.ReadLines("champions.txt").Last();
+                string latestChampion = "";
+                IEnumerable<String> output = File.ReadLines("champions.txt");
+                if (output.Count() > 0)
+                {
+                    latestChampion = File.ReadLines("champions.txt").Last();
+                }
                 if(latestChampion.Trim() != sequences[0].save())
                     using (StreamWriter sw = File.AppendText("champions.txt"))
                     {
                         sw.WriteLine(sequences[0].save());
                     }
-                Console.WriteLine("Deleting random sequences");
+//                Console.WriteLine("Deleting random sequences");
 
                 List<int> deletion = new List<int>(); 
-                while (sequences.Count() - deletion.Count() > MAX_SEQUENCES / 2)
+                while (sequences.Count() - deletion.Count() > MAX_SEQUENCES / 2 - COMPLETE_RANDOMS_PER_ROUND)
                 {
                     int n = (sequences.Count()-1) - (rand.Next(0, sequences.Count()-1) * rand.Next(0, sequences.Count()-1)) / (sequences.Count()-1);
                     if (!deletion.Contains(n))
@@ -104,12 +135,27 @@ namespace AI_Sorting
                     sequences.RemoveAt(deletion[i]);
                     scores.RemoveAt(deletion[i]);
                 }
+                // Delete the duplicates, if there are any.
+                deletion = new List<int>();
+                for (int i = 0; i < sequences.Count(); i++)
+                    for (int j = 1+i; j < sequences.Count(); j++)
+                        if (!deletion.Contains(j)) deletion.Add(j);
+                deletion.Sort();
+                deletion.Reverse();
+                for (int i = 0; i < deletion.Count(); i++)
+                {
+                    sequences.RemoveAt(deletion[i]);
+                    scores.RemoveAt(deletion[i]);
+                }
+
                 lastScores = new List<int>(scores);
 
-                Console.WriteLine("Creating babies.");
+//                Console.WriteLine("Creating babies.");
                 int parents = sequences.Count();
                 for (int i = 0; i < parents; i++)
                     sequences.Add(sequences[i].baby());
+                while (sequences.Count() < MAX_SEQUENCES)
+                    sequences.Add(new Sequence(sequences[0].getComplexity()));
 
             }
             Console.WriteLine("Building save strings");

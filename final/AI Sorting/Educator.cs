@@ -37,11 +37,14 @@ namespace AI_Sorting
             List<int> prints = new List<int>();
             int lastPrintCounter = 0;
             ulong iterations = 0;
-            bool broke = false;
             AIEnumerator life = ai.getEnum();
             while (true)
             {
                 AIEnumeratorValues loop = life.next();
+                if (loop.error)
+                {
+                    break;
+                }
                 if (loop.print)
                 {
                     lastPrintCounter = 0;
@@ -53,14 +56,12 @@ namespace AI_Sorting
                     break;
                 if (!loop.state_changed && !loop.print)
                 {
-                    broke = true;
                     break;
                 }
                 iterations++;
                 lastPrintCounter++;
                 if (lastPrintCounter > difficulty * 100)
                 {
-                    broke = true;
                     break;
                 }
             }
@@ -92,6 +93,11 @@ namespace AI_Sorting
             while (true)
             {
                 AIEnumeratorValues loop = life.next();
+                if (loop.error)
+                {
+                    broke = true;
+                    break;
+                }
                 if (loop.print)
                 {
                     lastPrintCounter = 0;
@@ -129,7 +135,6 @@ namespace AI_Sorting
             return score;
         }
 
-        static int current;
         private static int getRandom(int max)
         {
             return rand.Next(0, max-1) % max;
