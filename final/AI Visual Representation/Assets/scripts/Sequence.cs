@@ -90,9 +90,10 @@ namespace AI_Sorting
             int index = rand.Next(0, currentBrain.Length);
             int r = rand.Next((sequence.Count > 0) ? -1 : 0, LogicTree.questions.Length + LogicTree.commands.Length);
             char c;
-            if (r == -1)
+            if (r < 0)
             {
-                deleteElement(rand.Next(0, sequence.Count));
+                for (int a = rand.Next(0, sequence.Count); a > 0; a--)
+                    deleteElement(rand.Next(0, sequence.Count));
                 return;
             }
             else if (r >= LogicTree.questions.Length)

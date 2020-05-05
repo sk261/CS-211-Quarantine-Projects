@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "AI Sorting": {
+      "commandName": "Project",
+      "commandLineArgs": "\"C:\\Users\\Shay\\Desktop\\Programming Projects\\CS-211-Quarantine-Projects\\final\\AI Sorting\\bin\\Debug\\netcoreapp3.1\\champions.txt\""
+    }
+  }
+}

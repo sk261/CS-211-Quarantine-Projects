@@ -44,24 +44,12 @@ namespace AI_Sorting
         int[] input;
         LogicTree brain;
         string brainString;
+        Dictionary<char, string> decode = new Dictionary<char, string>();
 
         public AI(string brain)
         {
             brainString = brain;
             this.brain = new LogicTree(brain);
-        }
-
-        public void loadInput(int[] input)
-        {
-            this.input = input;
-        }
-
-        public AIEnumerator getEnum()
-        {
-            return new AIEnumerator(brain, input);
-        }
-        public override string ToString()
-        {
             /**     Tools and Abilities:
              * PriorityQueue
              * Active Element
@@ -82,12 +70,11 @@ namespace AI_Sorting
              * F End/Submit
              * */
 
-            Dictionary<char, string> decode = new Dictionary<char, string>();
             decode['G'] = "if (active > current.peek()) {";
             decode['g'] = "}";
             decode['L'] = "if (active < current.peek()) {";
             decode['l'] = "}";
-            decode['V'] = "if (active == current.peek()) {";
+            decode['V'] = "if (active >= 0 && active < input.length) {";
             decode['v'] = "}";
             decode['Q'] = "current.enqueue(active);";
             decode['P'] = "current.priorityEnqueue(active);";
@@ -100,9 +87,68 @@ namespace AI_Sorting
             decode['I'] = "active = input[active];";
             decode['F'] = "return;";
 
+        }
+
+        public void loadInput(int[] input)
+        {
+            this.input = input;
+        }
+
+        public AIEnumerator getEnum()
+        {
+            return new AIEnumerator(brain, input);
+        }
+
+        private string traverseTreeUnity(LogicTree.TreeNode current, int indent, int maxWalk)
+        {
+            if (current is null) return "";
+            current.isNotWalking = true;
+            string color = "FF0000";
+            if (current.hasWalked)
+            {
+                int _c = 100 + ((155 * current.timesWalked) / maxWalk);
+                color = "00" + _c.ToString("X") + "00";
+                if (color.Length < 6) color = "0" + color;
+            }
+
+            string ret = "<color=#" + color + ">";
+            foreach (char n in current.vals)
+            {
+                ret += new String('\t', indent) + decode[n] + "\n";
+                if (n == 'O' || n == 'F')
+                {
+                    ret += "</color><color=#FF0000>";
+                    color = "FF0000";
+                }
+            }
+
+            if (decode.ContainsKey(current.question))
+            {
+                ret += new String('\t', indent) + decode[current.question];
+                ret += "</color> \n";
+                ret += traverseTreeUnity(current.right, indent + 1, maxWalk);
+                ret += new String('\t', indent) + "<color=#" + color + "> } else { </color> \n";
+                ret += traverseTreeUnity(current.left, indent + 1, maxWalk);
+                ret += new String('\t', indent) + "<color=#" + color + "> } \n";
+            }
+            ret += "</color>";
+            current.isNotWalking = false;
+            return ret;
+        }
+
+        public string traverseTreeWithUnityCharacteristics()
+        {
+            string ret = "current = priorityQueues(); // handles multiple priority queues\nactive = 0;\n// Additionally, there is an int[] called input\n\nwhile(!quit) // Can be stopped if need be.\n{\n";
+            ret += traverseTreeUnity(brain.root, 1, brain.root.timesWalked);
+            return ret + "}";
+        }
+
+        public override string ToString()
+        {
 
             string ret = "current = priorityQueues(); // handles multiple priority queues\nactive = 0;\n// Additionally, there is an int[] called input\n\nwhile(!quit) // Can be stopped if need be.\n{\n";
             int indent = 1;
+
             foreach (char n in brainString)
             {
                 if (decode[n].EndsWith("}")) indent--;
@@ -114,6 +160,7 @@ namespace AI_Sorting
         }
 
     }
+
 
     public class AIEnumerator
     {
@@ -135,7 +182,7 @@ namespace AI_Sorting
 
         private bool fullyTraversed(LogicTree.TreeNode current)
         {
-            if (current == null) return true;
+            if (current is null) return true;
             if (!current.hasWalked) return false;
             return fullyTraversed(current.left) && fullyTraversed(current.right);
         }
@@ -221,9 +268,9 @@ namespace AI_Sorting
                             end = true;
                             break;
                     }
-                    if (error || print) break;
+                    if (error || print || end) break;
                 }
-                if (error || print) break;
+                if (error || print || end) break;
                 // do question logic
                 // rewriting code because it's 1:17am and I just don't want to bother simplifying a copy/paste right now.
                 if (current.question == 'G')
@@ -252,10 +299,7 @@ namespace AI_Sorting
                 else
                     break;
             }
-            if (valLength > 0)
-            {
-                faulty = true;
-            }
+            if (valLength > 0) faulty = true;
             return new AIEnumeratorValues(print, value, state_changed, end, error, faulty);
         }
     }
@@ -362,13 +406,15 @@ namespace AI_Sorting
             public int timesWalked = 0;
             public bool hasWalked = false;
             public bool broken = false;
+            public bool isNotWalking = false;
 
             public char question
             {
                 get
                 {
                     hasWalked = true;
-                    timesWalked++;
+                    if (!isNotWalking)
+                        timesWalked++;
                     return _question;
                 }
                 set
@@ -381,7 +427,9 @@ namespace AI_Sorting
             {
                 get
                 {
-                    timesWalked ++;
+                    hasWalked = true;
+                    if (!isNotWalking)
+                        timesWalked ++;
                     return _vals;
                 }
                 set 
@@ -401,7 +449,7 @@ namespace AI_Sorting
                     {
                         _question = c;
                         right = new TreeNode(tree);
-                        tree = tree.Substring(right._vals.Length);
+                        tree = tree.Substring(right._vals.Length + 1);
                         left = new TreeNode(tree);
                         break;
                     }
