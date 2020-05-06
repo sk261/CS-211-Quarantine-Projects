@@ -1,7 +1,8 @@
 # CS-211 Data Structures: Final Project
 ## AI Sorting and Visualization
 ## Made by Shay Konradsdottir over 14 hours.
-The "../AI Sorting" folder contains the solution and code for the AI sorter, which is already implemented in the "../AI Visual Representation" folder. "../AI Sorting Presentation.pptx" contains a presentation regarding this project.
+To start, run "./build/AI Visual Representation.exe"
+The "./AI Sorting" folder contains the solution and code for the AI sorter, which is already implemented in the "./AI Visual Representation" folder. "./AI Sorting Presentation.pptx" contains a presentation regarding this project.
 When using the AI Visual Representation:
 AI Save/Load - The current AI's string to copy, or a place to paste a previously made AI string. If pasting a string, press Load.
 Difficulty - Sets the difficulty of the int array. Press the New Array button to commit the change.
