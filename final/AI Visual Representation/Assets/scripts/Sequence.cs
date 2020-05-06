@@ -127,7 +127,7 @@ namespace AI_Sorting
             if (LogicTree.questions.Contains(top.c))
                 val += LogicTree.questionEnds[Array.IndexOf(LogicTree.questions, top.c)];
             if (currentBrain.Length > 0)
-                currentBrain = currentBrain.Insert(Math.Abs(top.index) % currentBrain.Length, val);
+                currentBrain = currentBrain.Insert(Math.Abs(top.index) % (currentBrain.Length+1), val);
             else
                 currentBrain = val;
         }
