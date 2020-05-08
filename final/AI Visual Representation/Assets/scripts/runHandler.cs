@@ -11,7 +11,8 @@ public class runHandler : MonoBehaviour
     private Sequence mainSequence;
     private int lastScore = Int32.MinValue;
 
-
+    public Toggle sequential;
+    public Toggle showSteps;
     public InputField inputField;
     public InputField difficultyField;
     public Text current;
@@ -20,6 +21,7 @@ public class runHandler : MonoBehaviour
     public Text currentScore;
     public Text championScore;
     private bool isPaused = true;
+    private int nextBaby = 0;
     // Start is called before the first frame update
     void Start()
     {
@@ -33,20 +35,39 @@ public class runHandler : MonoBehaviour
         {
             pauseResumeButton.text = "Pause";
 
-            Sequence seq = mainSequence;
 
-            int bestTempScore = Int32.MinValue;
+            Sequence seq;
+            int bestTempScore = int.MinValue;
 
-            for (int a = 0; a < 10; a++)
+            if (sequential.isOn)
             {
-                Sequence tempseq = seq.baby();
-                AI life = tempseq.build();
-                int tempScore = Educator.getConstTrainVal(tempseq);
-                if (tempScore > bestTempScore || (tempScore == bestTempScore && seq.save().Length > tempseq.save().Length))
+                // New version, incremented babies by nextBaby : int
+                int a = 10;
+                do
                 {
-                    bestTempScore = tempScore;
-                    seq = tempseq;
-                }
+                    a--;
+                    seq = mainSequence.baby(nextBaby);
+                    bestTempScore = Educator.getConstTrainVal(seq);
+                    nextBaby++;
+                } while (a > 0 && bestTempScore <= lastScore && !showSteps.isOn);
+            }
+            else
+            {
+                // Old version, random babies
+                seq = mainSequence.baby();
+                bestTempScore = Int32.MinValue;
+                int a = 10;
+                do
+                {
+                    a--;
+                    Sequence tempseq = seq.baby();
+                    int tempScore = Educator.getConstTrainVal(tempseq);
+                    if (tempScore > bestTempScore || (tempScore == bestTempScore && seq.save().Length > tempseq.save().Length))
+                    {
+                        bestTempScore = tempScore;
+                        seq = tempseq;
+                    }
+                } while (a > 0 && !showSteps.isOn);
             }
 
 
@@ -57,6 +78,7 @@ public class runHandler : MonoBehaviour
                 mainSequence = seq;
                 lastScore = bestTempScore;
                 championScore.text = currentScore.text;
+                nextBaby = 0;
             }
 
             string temp = mainSequence.save();
@@ -105,7 +127,10 @@ public class runHandler : MonoBehaviour
             mainSequence = tempSequence;
             champion.text = Educator.getConstTrainAI(mainSequence).traverseTreeWithUnityCharacteristics();
             lastScore = Educator.getConstTrainVal(mainSequence);
-        } catch {
+            championScore.text = "Score: " + lastScore.ToString() + "(T" + Educator.getConstTier().ToString() + ")\nOriginal:\t" + Educator.getConstGoal() + "\nReply:\t" + Educator.getConstReply();
+
+        }
+        catch {
             isPaused = true;
             inputField.text = "Error: Sequence throws an error.";
         }

@@ -21,8 +21,9 @@ namespace AI_Sorting
         Stack<SequenceItem> sequence;
         private string currentBrain;
         static Random rand = new Random();
-//      For future goal:
-//        static private int sequentialIndex = 0;
+        public static char[] keys = new char[LogicTree.questions.Length + LogicTree.commands.Length];
+        //      For future goal:
+        //        static private int sequentialIndex = 0;
 
         public Sequence(int complexity = -1)
         {
@@ -57,12 +58,82 @@ namespace AI_Sorting
             return new Sequence(save());
         }
 
-        public Sequence baby(int complexity = -1)
+        public Sequence baby(int nextStep = -1)
         {
             Sequence ret = copy();
-            if (complexity == -1) complexity = rand.Next(1, Math.Max(30, ret.getComplexity()));
-            for (; complexity > 0; complexity --) ret.addRandomElement();
+            if (nextStep < 0)
+                for (int complexity = rand.Next(1, Math.Max(10, ret.getComplexity())); complexity > 0; complexity--) ret.addRandomElement();
+            else
+            {
+                if (keys[0] != LogicTree.questions[0])
+                {
+                    LogicTree.questions.CopyTo(keys, 0);
+                    LogicTree.commands.CopyTo(keys, LogicTree.questions.Length);
+                }
+                List<Tuple<int, int>> placements = new List<Tuple<int, int>>();
+                placements.Add(new Tuple<int, int>(0, 0));
+
+                int place = 0;
+                Tuple<int, int> current = placements[place];
+                placements.RemoveAt(place);
+                int pos = current.Item1;
+                int val = current.Item2;
+
+                for (; nextStep > 0; nextStep--)
+                {
+                    while (babyHelper(ref pos, ref val, placements))
+                    {
+                        placements.Insert(place, new Tuple<int, int>(pos, val));
+                        place++;
+                        babyHelper(ref pos, ref val, ref placements, ref current, place);
+                    }
+                    if (place != 0)
+                    {
+                        placements.Insert(place, new Tuple<int, int>(pos, val));
+                        place = 0;
+                        babyHelper(ref pos, ref val, ref placements, ref current, place);
+                    }
+                }
+                placements.Insert(place, new Tuple<int, int>(pos, val));
+
+                foreach (Tuple<int,int> insert in placements)
+                    ret.addElement(keys[insert.Item2], insert.Item1);
+            }
             return ret;
+        }
+
+        private void babyHelper(ref int pos, ref int val, ref List<Tuple<int, int>> placements, ref Tuple<int,int> current, int place)
+        {
+            while (place >= placements.Count)
+                placements.Add(new Tuple<int, int>(0, 0));
+            current = placements[place];
+            placements.RemoveAt(place);
+            pos = current.Item1;
+            val = current.Item2;
+        }
+
+        // Returns true when you've reached the end of the brain.
+        private bool babyHelper(ref int pos, ref int val, List<Tuple<int, int>> prev)
+        {
+            val++;
+            if (val >= keys.Length)
+            {
+                val = 0;
+                pos++;
+                int newBrain = currentBrain.Length;
+                foreach (Tuple<int, int> var in prev)
+                {
+                    newBrain++;
+                    if (LogicTree.questions.Contains(keys[var.Item2]))
+                        newBrain++;
+                }
+                if (pos >= newBrain)
+                {
+                    pos = 0;
+                    return true;
+                }
+            }
+            return false;
         }
 
         public int getComplexity()
